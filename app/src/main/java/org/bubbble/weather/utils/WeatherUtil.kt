@@ -9,14 +9,24 @@ import java.util.*
 
 class WeatherUtil(code: String) {
 
-    val dayWeatherData = ArrayList<DayWeatherBean>()
+    /**
+     * 每天天气集合
+     */
+    val dayWeatherData = ArrayList<DayWeatherBeans>()
+
+    /**
+     * 当天小时天气数据
+     */
     val hoursWeatherData = ArrayList<DayWeatherBean>()
-    val dayWeatherData2 = ArrayList<DayWeatherBeans>()
 
     var todayWindSpeed = ""
     var todayHumidity = ""
     var todayHighest = ""
     var todayStatus = "none"
+
+    /**
+     * 当天气温
+     */
     var nowTemps = ""
 
     init {
@@ -49,7 +59,6 @@ class WeatherUtil(code: String) {
                     todayStatus = weather
                 }
 
-
                 if (windSpeed.indexOf("级")+1 > 0){
                     todayWindSpeed = windSpeed.substring(0,windSpeed.indexOf("级")+1)
                     windSpeeds = todayWindSpeed
@@ -58,9 +67,7 @@ class WeatherUtil(code: String) {
                     windSpeeds = windSpeed
                 }
 
-
-                dayWeatherData.add(DayWeatherBean(getWeek(time),weather,"$temp°"))
-                dayWeatherData2.add(DayWeatherBeans(getWeek(time),weather,"$temp°",windSpeeds))
+                dayWeatherData.add(DayWeatherBeans(getWeek(time),weather,"$temp°",windSpeeds))
             }
 
             val nowHours = Integer.parseInt(SimpleDateFormat("HH").format(Date()))
@@ -107,7 +114,7 @@ class WeatherUtil(code: String) {
             }
 
             nowTemps = "$nowTemp℃"
-            todayHighest = highTemp.toString()+"℃"
+            todayHighest = "$highTemp℃"
 
             //获取湿度
             val humiditys = doc.select("div.con").select(".today").select(".clearfix").select("script")
@@ -132,7 +139,7 @@ class WeatherUtil(code: String) {
                 }
             }
 
-            todayHumidity = humidityData.toString()+"%"
+            todayHumidity = "$humidityData%"
 
         }catch(e: Exception) {
             Log.e("mytag", e.message)
@@ -221,5 +228,4 @@ class WeatherUtil(code: String) {
 
         return hours >= 2
     }
-
 }
