@@ -3,16 +3,18 @@ package org.bubbble.weather.utils
 import android.util.Log
 import org.bubbble.weather.bean.DayWeatherBean
 import org.bubbble.weather.bean.DayWeatherBeans
+import org.bubbble.weather.bean.FutureWeatherBean
 import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 class WeatherUtil(code: String) {
 
     /**
      * 每天天气集合
      */
-    val dayWeatherData = ArrayList<DayWeatherBeans>()
+    val dayWeatherData = ArrayList<FutureWeatherBean>()
 
     /**
      * 当天小时天气数据
@@ -50,45 +52,40 @@ class WeatherUtil(code: String) {
         }
     }
 
+    // 抓取当天详细数据http://www.weather.com.cn/weather1d/101200801.shtml
+    // 抓取未来详细数据http://www.weather.com.cn/weather15d/101200801.shtml
+
     init {
         doAsyncTask {
             try {
-                // 获取未来7天的天气情况
-                val doc = Jsoup.connect("http://www.weather.com.cn/weather/$code.shtml").userAgent("Mozilla/5.0 (Windows NT 6.1; rv:30.0) Gecko/20100101 Firefox/30.0").timeout(80000).get()
-                val elements = doc.select("div.con").select(".today").select(".clearfix").select("div.c7d")
+                val dayHtml = Jsoup.connect("http://www.weather.com.cn/weather1d/$code.shtml").userAgent("Mozilla/5.0 (Windows NT 6.1; rv:30.0) Gecko/20100101 Firefox/30.0").timeout(80000).get()
+                val weekHtml = Jsoup.connect("http://www.weather.com.cn/weather15d/$code.shtml").userAgent("Mozilla/5.0 (Windows NT 6.1; rv:30.0) Gecko/20100101 Firefox/30.0").timeout(80000).get()
+
+                val elements = weekHtml.select("div.con").select(".today").select(".clearfix").select("div.c15d")
                 val day = elements.select("ul.t").select(".clearfix")
+
+                // 抓取未来7-15天的天气情况
                 for ((index,li) in day.select("li").withIndex()){
 
-                    val dateMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault())
-                    val dateDay = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val month = dateMonth.format(Date())+"-"+li.select("h1").text().substring(0,li.select("h1").text().indexOf("日"))
+//                    val dateMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault())
+//                    val dateDay = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+//                    val month = dateMonth.format(Date())+"-"+li.select("h1").text().substring(0,li.select("h1").text().indexOf("日"))
 
-                    val time = dateDay.parse(month)
-                    val weather = li.select("p.wea").text()
-                    val temp = li.select("p.tem").text().substring(0, li.select("p.tem").text().indexOf("℃"))
-                    var windSpeeds = ""
+                    // 抓取：周一（1日）
+                    val time = li.select("span.time").text()
 
-                    val windSpeed = li.select("p.win").text()
+                    // 天气：小雨转阴天
+                    val weather = li.select("span.wea").text()
 
-                    if (index == 0){
+                    // 温度格式：00℃/00℃
+                    val temp = li.select("span.tem").text()
+                    val maxTemperature = temp.substring(0, temp.indexOf("℃"))
+                    val minTemperature = temp.substring(temp.indexOf("/") + 1, temp.indexOf("℃"))
 
-                        todayWindSpeed = if (windSpeed.indexOf("级")+1 > 0){
-                            windSpeed.substring(0,windSpeed.indexOf("级")+1)
-                        }else{
-                            windSpeed
-                        }
-                        todayStatus = weather
-                    }
+                    val windDescribe = li.select("span.wind").text()
+                    val windSpeed = li.select("span.wind1").text()
 
-                    if (windSpeed.indexOf("级")+1 > 0){
-                        todayWindSpeed = windSpeed.substring(0,windSpeed.indexOf("级")+1)
-                        windSpeeds = todayWindSpeed
-                    }else{
-                        todayWindSpeed = windSpeed
-                        windSpeeds = windSpeed
-                    }
-
-                    dayWeatherData.add(DayWeatherBeans(getWeek(time),weather,"$temp°",windSpeeds))
+                    dayWeatherData.add(FutureWeatherBean(time, weather,"$maxTemperature°", "$minTemperature°", windDescribe, windSpeed))
                 }
 
                 val nowHours = Integer.parseInt(SimpleDateFormat("HH", Locale.getDefault()).format(Date()))
@@ -97,7 +94,7 @@ class WeatherUtil(code: String) {
                 var nowTemp = ""
                 var highTemp = -100
 
-                //获取未来几小时的天气情况
+                //获取未来每三小时的天气情况
                 for (hours in  elements.select("script")){
 
                     /*取得JS变量数组*/
@@ -117,10 +114,10 @@ class WeatherUtil(code: String) {
                                 Log.e("message[2]",message[2])
                                 Log.e("temp",temp)
 
-                                hoursWeatherData.add(DayWeatherBean(time,weatherIcon,"$temp°"))
+                                hoursWeatherData.add(DayWeatherBean(time, weatherIcon,"$temp°"))
 
                                 if (message[0].substring(0,2) == nowDay){
-                                    val difference = Math.abs(nowHours - Integer.parseInt(message[0].substring(3,message[0].indexOf("时"))))
+                                    val difference = abs(nowHours - Integer.parseInt(message[0].substring(3,message[0].indexOf("时"))))
                                     if (difference < nowTime){
                                         nowTime = difference
                                         nowTemp = temp
@@ -138,7 +135,7 @@ class WeatherUtil(code: String) {
                 todayHighest = "$highTemp℃"
 
                 //获取湿度
-                val humiditys = doc.select("div.con").select(".today").select(".clearfix").select("script")
+                val humiditys = dayHtml.select("div.con").select(".today").select(".clearfix").select("script")
                 var humidityData = 0
                 for (ds in humiditys){
                     val data = ds.data().toString().split("var")

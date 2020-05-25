@@ -24,7 +24,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        TypefaceUtil.replaceFont(this, "fonts/ProductSans.ttf")
 
         // 获取屏幕宽高
         val displayMetrics = DisplayMetrics()

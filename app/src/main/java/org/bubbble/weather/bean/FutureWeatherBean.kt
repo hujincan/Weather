@@ -10,5 +10,6 @@ data class FutureWeatherBean(
     val weatherType: String,
     val maxTemperature: String,
     val minTemperature: String,
+    val windDescribe: String,
     val windSpeed: String
 )
